@@ -1,9 +1,9 @@
 var express = require('express');
+var TestController = require('../application/controllers/TestController');
 var router = express.Router();
 
-/* GET users listing. */
-router.get('/shop', function(req, res, next) {
-  res.render('shop');
-});
+/* GET home page. */
+router.get('/', TestController.Index);
+
 
 module.exports = router;

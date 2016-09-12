@@ -5,8 +5,6 @@ var router = express.Router();
 /* GET home page. */
 router.get('/', IndexController.Index);
 
-router.get('/shop', function(req, res, next) {
-  res.render('shop', { title: 'Shop' });
-});
+router.get('/shop', IndexController.Product);
 
 module.exports = router;
