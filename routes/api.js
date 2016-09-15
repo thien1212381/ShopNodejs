@@ -2,7 +2,9 @@ var express = require('express');
 var router = express.Router();
 var Product = require('../application/model/product');
 var User = require('../application/model/user');
+var Category = require('../application/model/category');
 var jwt    = require('jsonwebtoken');
+var async = require('async');
 
 
 router.route('/authenticate')
@@ -81,5 +83,115 @@ router.route('/product')
 
         });
       });
+
+
+router.route('/product/:productId/:username')
+      .get(function(req,res){
+        var productId = req.params.productId;
+        var username = req.params.username;
+        var productJson,userJson;
+        //parallel async
+        async.parallel([
+          function(callback){
+            Product.findOne({_id:productId},function(err,product){
+              if(err) return res.json({success:false,message:'Can\'t load product!'});
+              productJson = product;
+              callback();
+            });
+          },
+          function(callback){
+            User.findOne({username:username},function(err,user){
+              if(err) return res.json({success: false,message:'Can\'t load user!'});
+              userJson = users;
+              callback();
+            });
+          }
+        ],function(err){ //function will call when after all tasks in the first params have called "callback"
+          if(err) res.json({success:false,message:'Error database!'});
+          res.json({success:true,product:productJson,user:userJson});
+        })
+      })
+
+router.route('/product/:productId')
+      .get(function(req,res,next){
+        var productId = req.params.productId;
+        var categoryId;
+        var categoryJson;
+        //series async
+        async.series([
+          //first task
+          function(callback){
+            getProductbyId(productId,function(err,product){
+              if(err) return callback(err);
+              categoryId = product.ProductCategoryId;
+              callback();
+            })
+          },
+          //second task call when first task call 'callback'
+          function(callback){
+            getCategorybyId(categoryId,function(err,category){
+              if(err) return callback(err);
+              categoryJson = category;
+              callback();
+            })
+          }
+        ],function(err){  //function will call when the final task has called 'callback'
+          if(err) return res.json({success: false,error:'Error!'});
+          res.json({success: true,category:categoryJson});
+        })
+      })
+
+router.route('/productupdate')
+      .get(function(req,res){
+        var message='';
+        Product.find({},function(err,products){
+          if(err) return res.json({success: false,error: 'Error!'});
+          //foreach parallel async
+          async.forEach(products,function(product,callback){
+            product.ProductPrice = Math.floor((Math.random() * 99) + 10);
+            product.save(function(err){
+              console.log(product);
+              message=message+product._id+'-';
+              callback();
+            })
+          },function(err){
+            res.json({success: true,message:message});
+          });
+        })
+      })
+
+
+router.route('/getsubcategory/:productId')
+      .get(function(req,res){
+        var productId = req.params.productId;
+        // waterfall async
+        async.waterfall([
+          function(callback){
+            getProductbyId(productId,callback);
+          },//the result of task is the params of function next task
+          function(product,callback){
+            getCategorybyId(product.ProductCategoryId,callback);
+          }
+        ],function(err,category){ //all task finish
+          if(err) return res.json({success: false,error:'Error!!'});
+          res.json({success:true,sub:category.sub});
+        });
+      });
+
+function getProductbyId(productId,callback){
+  Product.findOne({_id:productId},function(err,product){
+    if (err) return callback(err);
+    if(product==null) return callback(new Error('No user found!!'));
+    callback(null,product);
+  });
+}
+
+function getCategorybyId(categoryId,callback){
+  Category.findOne({_id:categoryId},function(err,category){
+    if(err) return callback(err);
+    if(category==null) return callback(new Error('No category found!!'));
+    callback(null,category);
+  })
+}
 
 module.exports = router;
