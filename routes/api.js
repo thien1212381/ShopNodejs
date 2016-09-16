@@ -90,6 +90,7 @@ router.route('/product/:productId/:username')
         var productId = req.params.productId;
         var username = req.params.username;
         var productJson,userJson;
+        console.time('parallel');
         //parallel async
         async.parallel([
           function(callback){
@@ -102,7 +103,7 @@ router.route('/product/:productId/:username')
           function(callback){
             User.findOne({username:username},function(err,user){
               if(err) return res.json({success: false,message:'Can\'t load user!'});
-              userJson = users;
+              userJson = user;
               callback();
             });
           }
@@ -110,6 +111,7 @@ router.route('/product/:productId/:username')
           if(err) res.json({success:false,message:'Error database!'});
           res.json({success:true,product:productJson,user:userJson});
         })
+        console.timeEnd('parallel');
       })
 
 router.route('/product/:productId')
@@ -117,6 +119,7 @@ router.route('/product/:productId')
         var productId = req.params.productId;
         var categoryId;
         var categoryJson;
+        console.time('series');
         //series async
         async.series([
           //first task
@@ -139,6 +142,7 @@ router.route('/product/:productId')
           if(err) return res.json({success: false,error:'Error!'});
           res.json({success: true,category:categoryJson});
         })
+        console.timeEnd('series');
       })
 
 router.route('/productupdate')
@@ -164,6 +168,7 @@ router.route('/productupdate')
 router.route('/getsubcategory/:productId')
       .get(function(req,res){
         var productId = req.params.productId;
+        console.time('waterfall');
         // waterfall async
         async.waterfall([
           function(callback){
@@ -176,6 +181,7 @@ router.route('/getsubcategory/:productId')
           if(err) return res.json({success: false,error:'Error!!'});
           res.json({success:true,sub:category.sub});
         });
+        console.timeEnd('waterfall');
       });
 
 function getProductbyId(productId,callback){
