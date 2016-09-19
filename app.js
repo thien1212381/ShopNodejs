@@ -5,6 +5,27 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var db = require('./application/model/db');
+var basicAuth = require('basic-auth');
+
+//basic authenticate
+var auth = function (req, res, next) {
+  function unauthorized(res) {
+    res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
+    return res.send(401);
+  };
+
+  var user = basicAuth(req);
+
+  if (!user || !user.name || !user.pass) {
+    return unauthorized(res);
+  };
+
+  if (user.name === 'admin' && user.pass === 'admin@123') {
+    return next();
+  } else {
+    return unauthorized(res);
+  };
+};
 
 var routes = require('./routes/index');
 var cart = require('./routes/cart');
@@ -26,7 +47,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);
-app.use('/cart', cart);
+app.use('/cart',auth, cart);
 app.use('/api',api);
 
 // catch 404 and forward to error handler
